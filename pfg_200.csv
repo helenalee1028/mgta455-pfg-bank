@@ -1,0 +1,13 @@
+profile,apr,fixed_var,annual_fee,Sent,Responses
+1,14.9,Fixed,20,"2,000",51
+2,14.9,Variable,20,0,0
+3,14.9,Fixed,0,0,0
+4,14.9,Variable,0,"3,000",120
+5,16.8,Fixed,20,"4,000",34
+6,16.8,Variable,20,0,0
+7,16.8,Fixed,0,0,0
+8,16.8,Variable,0,"4,000",80
+9,19.8,Fixed,20,0,0
+10,19.8,Variable,20,"3,000",10
+11,19.8,Fixed,0,"2,000",27
+12,19.8,Variable,0,0,0
