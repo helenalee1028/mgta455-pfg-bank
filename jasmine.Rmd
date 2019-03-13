@@ -1,0 +1,123 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+```
+
+```{r}
+exhibit1 <- exhibit1 %>%
+  mutate(rate = resp / nr_mailed,
+         type = paste0(apr,'_',fixed_var,'_',annual_fee,'_',bk_score))
+
+
+```
+
+```{r}
+sum(exhibit1$resp) / sum(exhibit1$nr_mailed)
+
+```
+
+
+```{r}
+exhibit1 %>%
+  group_by(annual_fee) %>%
+  summarize(avg_resp = sum(resp) / sum(nr_mailed))
+```
+
+
+
+```{r}
+X <- exhibit2 %>%
+  mutate(all = ltv150 +ltv200 + ltv250 ) %>%
+  group_by(annual_fee) %>%
+    summarize(avg = mean(all))
+  
+```
+
+
+
+
+```{r}
+
+## Gather columns
+pfg <- gather(exhibit1, resp, freq, non_resp, resp, factor_key = TRUE)
+## register the new dataset
+register("pfg", "exhibit1")
+```
+
+
+```{r}
+pfg_150 <- pfg %>%
+  filter(bk_score == 150) %>%
+  select(date:freq)
+register("pfg_150", "pfg")
+
+
+pfg_200 <- pfg %>%
+  filter(bk_score == 200) %>%
+  select(date:freq)
+register("pfg_200", "pfg")
+## filter and sort the dataset
+pfg_250 <- pfg %>%
+  filter(bk_score == 250) %>%
+  select(date:freq)
+register("pfg_250", "pfg")
+# dtab(pfg_250, dec = 2, nr = 100) %>% render()
+```
+
+```{r fig.width = 7, fig.height = 5.38, dpi = 144}
+result <- logistic(
+  pfg_150, 
+  rvar = "resp", 
+  evar = c("apr", "fixed_var", "annual_fee"), 
+  lev = "resp", 
+  wts = "freq"
+)
+summary(result)
+#plot(result, plots = "dist", custom = FALSE)
+```
+```{r}
+result <- logistic(
+  pfg_200, 
+  rvar = "resp", 
+  evar = c("apr", "annual_fee"), 
+  lev = "resp", 
+  wts = "freq"
+)
+summary(result)
+```
+
+
+pfg_200 has no example of variable
+
+
+```{r}
+result <- logistic(
+  pfg_250, 
+  rvar = "resp", 
+  evar = c("apr", "fixed_var", "annual_fee"), 
+  lev = "resp", 
+  wts = "freq"
+)
+summary(result)
+```
+
+
+
+```{r}
+result <- doe(
+  factors = c(
+    "apr; 14.9; 16.8; 19.8", 
+    "annual_fee; 0; 20", 
+    "fixed_var; 'fixed'; 'var'", 
+    "bk; 150; 200; 250"
+  ), 
+  trials = 12, 
+  seed = 1234
+)
+summary(result, eff = TRUE, part = TRUE, full = TRUE)
+```
