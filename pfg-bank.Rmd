@@ -77,8 +77,8 @@ exhibit2 %>%
 ```
 
 In addition, within each BK group, we can see LTV varies with product features. 
-
-1. LTV increases with APR. With higher interest rate charges, PFG has higher expected revenues, hence higher projected LTV;
+ 
+* 1. LTV increases with APR. With higher interest rate charges, PFG has higher expected revenues, hence higher projected LTV;
 
 ```{r}
 # ARP
@@ -89,7 +89,7 @@ exhibit2 %>%
             avg_bk250 = mean(ltv250))
 ```
 
-2. LTV will also rise if banks issue variable rate credit cars, because banks have the channels to pass along rising borrowing costs to customers, hence protecting their margins. 
+* 2. LTV will also rise if banks issue variable rate credit cars, because banks have the channels to pass along rising borrowing costs to customers, hence protecting their margins. 
 
 ```{r}
 # Fixed vs Var
@@ -101,7 +101,7 @@ exhibit2 %>%
             avg_bk250 = mean(ltv250))
 ```
 
-3. Higher annual fee also means higher projected LTV, as the fixed annual fee of $20 is guranteed revenues for banks.
+* 3. Higher annual fee also means higher projected LTV, as the fixed annual fee of $20 is guranteed revenues for banks.
 
 
 ```{r}
@@ -117,7 +117,7 @@ exhibit2 %>%
 
 ### Question 2
 
-In this question, we separated exhibit1 dataset by three banktcruptcy score groups and expanded datasets to the length of mailing counts. Then we ran logistic regressions using actual response as predicted variable, and APR rate, fixed/variable rate and annual fee. Below are the predictive results. 
+In this question, we separated exhibit1 dataset by three bankruptcy score groups and expanded datasets to the length of mailing counts. Then we ran logistic regressions using the actual response as the predicted variable, and APR rate, fixed/variable rate and annual fee. Below are the predictive results. 
 
 ```{r}
 # expand data frame
@@ -192,17 +192,15 @@ summary(result250)
 plot(result250, plots = "coef", custom = FALSE)
 ```
 
-Generally, we don't find the predictive models useful in picking up product features' effects on response rate 
+Generally, we don't find the predictive models useful in picking up product features' effects on response rate across BK groups and here are the reasons. 
 
-across BK groups and here are the reasons. 
-
-* 1. The product feature combinations aren't comprehensive in BK150 and BK200, which makes it difficult to compare the effects of one feature while holding other features the same. To be specific, In group BK150, we don't have instance of APR 19.8; while in group BK200, we don't have APR 16.8 or fixed/variable rate.
+* 1. The product feature combinations aren't comprehensive in BK150 and BK200, which makes it difficult to compare the effects of one feature while holding other features the same. To be specific, In group BK150, we don't have an instance of APR 19.8; while in group BK200, we don't have APR 16.8 or fixed/variable rate.
 
 * 2. External factors have settled in since the launch of previous mailings, in terms of competitors' offers and prevailing borrowing costs. Both would affect how customers would react to PFG's product combinations. 
 
-However, the historical data did affirm our assumptions on how variations in these variables would affect customers' response rate. For example, in group BK250, the odds ratio of annual_fee|20 is 0.284, meaning that if PFG charges $20 for annual fee, the odds of a customer opening an account will decrease by 71.6%, holding all else constant. Also, given the only variables we have, we see that different BK groups react to the same product differently. 
+However, the historical data did affirm our assumptions on how variations in these variables would affect customers' response rate. For example, in group BK250, the odds ratio of annual_fee|20 is 0.284, meaning that if PFG charges $20 for the annual fee, the odds of a customer opening an account will decrease by 71.6%, holding all else constant. Also, given the only variables we have, we see that different BK groups react to the same product differently. 
 
-In our testing strategy, we used the average response rate of each product combinations, regardless of BK group, and check the ranking of average response rate. We used this relative ranking as reference in determining sample size. More details will be discussed in Question 4. 
+In our testing strategy, we used the average response rate of each product combinations, regardless of BK group, and check the ranking of average response rate. We used this relative ranking as a reference in determining sample size. More details will be discussed in Question 4. 
 
 
 ```{r}
@@ -234,7 +232,9 @@ or_df %>%
 
 ### Question 3
 
-In our predictions after round 1, it looks that all customers would prefer 
+We found the most 'preferable' offer after round 1 test. After getting the test results, we ran logistic regressions for each BK group, like what we did for historical data and predicted response probabilities afterwards. 
+
+For each group of customers, we extracted the offer with highest predicted response rate. It turns out that all 3 groups prefer 14.9 ARP rate, fixed-rate APR and zero annual fees. It makes sense as customers want the products that are the most cost-effective. 
 
 ```{r message = FALSE}
 # import round 1 test results
@@ -327,7 +327,6 @@ exhibit2$pred_250_lower <- pred$`2.5%`
 exhibit2$pred_250_higher <- pred$`97.5%`
 ```
 
-For each group of customers, we extracted the offer with highest predicted response rate. It turns out that all 3 groups prefer 14.9 ARP rate, fixed-rate APR and zero annual fees. It makes sense as customers want the products that are the most cost-effective. 
 
 ```{r}
 exhibit2[which.max(exhibit2$pred_150),]
@@ -339,7 +338,57 @@ exhibit2[which.max(exhibit2$pred_250),]
 
 ### Question 4
 
+#### Before Round 1
+
+The decision of test setting consists of two steps. The first is which combinations to test, the second is test size for each cell.
+
+***Partial or full factorial design?**
+
+In this case, we think that full factorial testing will burn too many customers who could have been targeted by specific credit plans instead. We believe that after careful subset, we will be able to be exposed to necessary information about the most important features.
+
+***Test combination**
+
+We use Radiant DOB function to help us decide which combinations to test. The design factors are 'apr', 'annual fee' and 'fixed_var'. The reason we did not include br_score is that bk_score is customer attribute rather than product attribute and we can not control. It is necessary that each customer type was exposed to the same kinds of combinations, which will help PFG to gain a full picture in the customer response pattern. In DOB, design efficiency has first exceeded 0.8 at the 6th trials and the set is balanced. Thus, we decided to test 6 combinations for each customer type.
+
+
+The 6 combinations we chose are as follows:
+
+```{r}
+result <- doe(
+  factors = c(
+    "apr; 14.9; 16.8; 19.8", 
+    "annual_fee; 0; 20", 
+    "fixed_var; 'fixed'; 'var'"
+  ), 
+  trials = 6, 
+  seed = 1234
+)
+summary(result, eff = FALSE, part = TRUE, full = FALSE)
+```
+
+With different random seeds, factorial designs are different mainly in terms of annual fee and fixed_var. Under each instance of apr, the test settings are either \$0_variable and \$20_fixed or \$0_fixed and \$20_variable. Between those two we prefer \$0_variable and \$20_fixed. What we have affirmed from historical data is that higher annual fee is associated with a lower response rate, and customers have a more positive attitude towards fixed rate compared to variable rate feature. Thus the combination of $0 and variable would drive customers' decisions in opposite directions. Therefore we expect tests on these combinations would reveal more unseen information on customer behaviors. 
+
+However, we also need combinations of zero annual fee and fixed rate offer to our test balanced, so we combined zero annual_fee and fixed rate under APR of 19.8. 
+
+***Sample size**
+
+After determining the product combinations, we moved to choosing sample size. 
+
+First, through logistic regressions on historical data, we found that the approximate sample size would be around 18,000 for each kind of customers to draw statistical conclusions. Instead of evenly allocating 18,000 targets to 6 combinations, we decide to differentiate sample size according to the uncertainty and ambiguity of test results. For example, for those combinations at the spectrum of all test settings, we may allocate a smaller sample size as we are relatively sure their response rate would be at top and bottom. For those combinations at the middle, responding difference between each case is little, thus large sample size is needed to make the result statistically significant. Sample size we choose for 6 test combinations are 2000,3000,4000, 4000,3000,2000 respectively.
+
+
+#### After Round 1
+
+After putting our decisions to test, we gathered the results and used logistic regression for our analysis. Model details are illustrated in Question 3. 
+
 In our final rolling out, we chose our offer that has the highest expected CLV, which is the corresponding CLV multiplied by predicted profits. 
+
+*Group BK150 - Offer 4, Apr 14.9, Variable Rate, Zero Annual Fee;
+
+*Group BK200 - Offer 3, APR 14.9, Fixed Rate, Zero Annual Fee;
+
+*Group BK250 = Offer 11, APR 19.8, Fixed Rate, Zero Annual Fee. 
+
 
 ```{r}
 # calculated expected CLV for each group 
@@ -361,13 +410,13 @@ exhibit2 <- exhibit2 %>%
 send_150 <- exhibit2 %>%
   arrange(desc(profit_150) )%>%
             slice(1) %>% 
-  select(apr, fixed_var, annual_fee, pred_150)
+  select(offer, apr, fixed_var, annual_fee, pred_150)
 send_150 
 
 send_200 <- exhibit2 %>%
   arrange(desc(profit_200) )%>%
             slice(1) %>% 
-  select(apr, fixed_var, annual_fee, pred_200)
+  select(offer, apr, fixed_var, annual_fee, pred_200)
 send_200
 
 
@@ -375,16 +424,18 @@ send_200
 send_250 <- exhibit2 %>%
   arrange(desc(profit_250) )%>%
             slice(1) %>% 
-  select(apr, fixed_var, annual_fee, pred_250)
+  select(offer, apr, fixed_var, annual_fee, pred_250)
 
 send_250
 
 
 ```
 
-### Neural Network - Second Support
+#### Neural Network - Second Model
 
-We also ran neural network to capture any remaining interaction effects we missed in logistic regression, if any. 
+We also ran neural network report to capture remaining interaction effects if any. 
+
+**Neural Network Model for BK150**
 
 ```{r}
 result <- nn(
@@ -395,13 +446,12 @@ result <- nn(
   wts = "freq", 
   seed = 1234
 )
-summary(result, prn = TRUE)
 pred <- predict(result, pred_data = exhibit2)
-print(pred, n = 10)
+print(pred)
 exhibit2 <- store(exhibit2, pred, name = "pred_nn_150")
 ```
 
-
+**Neural Network Model for BK200**
 
 ```{r}
 result <- nn(
@@ -412,15 +462,12 @@ result <- nn(
   wts = "freq", 
   seed = 1234
 )
-summary(result, prn = TRUE)
 pred <- predict(result, pred_data = exhibit2)
-print(pred, n = 10)
+print(pred)
 exhibit2 <- store(exhibit2, pred, name = "pred_nn_200")
 ```
 
-
-
-
+**Neural Network Model for BK250**
 
 ```{r}
 result <- nn(
@@ -433,36 +480,49 @@ result <- nn(
 )
 summary(result, prn = TRUE)
 pred <- predict(result, pred_data = exhibit2)
-print(pred, n = 10)
+print(pred)
 exhibit2 <- store(exhibit2, pred, name = "pred_nn_250")
 ```
 
 
+Next we checked the expected CLV ranking as well and below are the recommendations. The results are different from previous recommendations where variable rate plans are recommendated for BK200 and BK250. 
+
+*Group BK150 - Offer 4, Apr 14.9, Variable Rate, Zero Annual Fee;
+
+*Group BK200 - Offer 4, Apr 14.9, Variable Rate, Zero Annual Fee;
+
+*Group BK250 = Offer 12, APR 19.8, Variable Rate, Zero Annual Fee. 
+
 ```{r}
+# calculate expected CLV
 exhibit2 <- exhibit2 %>%
   mutate(profit_nn_150 = ltv150*pred_nn_150,
          profit_nn_200 = ltv200*pred_nn_200,
          profit_nn_250 = ltv250*pred_nn_250)
 
-```
-
-
-```{r}
 exhibit2[which.max(exhibit2$profit_nn_150),]
 exhibit2[which.max(exhibit2$profit_nn_200),]
 exhibit2[which.max(exhibit2$profit_nn_250),]
-
 ```
-
 
 
 ```{r}
-exhibit2[which.max(exhibit2$pred_nn_150),]
-exhibit2[which.max(exhibit2$pred_nn_200),]
-exhibit2[which.max(exhibit2$pred_nn_250),]
+exhibit2[which.max(exhibit2$profit_nn_150),c('offer','apr','fixed_var', 'annual_fee', 'profit_150')]
+exhibit2[which.max(exhibit2$profit_nn_200),c('offer','apr','fixed_var', 'annual_fee', 'profit_200')]
+exhibit2[which.max(exhibit2$profit_nn_250),c('offer','apr','fixed_var', 'annual_fee', 'profit_250')]
 
 ```
-Ensemble
+
+#### Ensemble
+
+We then ensembled the predictions and checked the expected clv. The results are the same with logistic regression. Therefore this is our final choice for each group of customers. 
+
+* Group BK150 - Offer 4, Apr 14.9, Variable Rate, Zero Annual Fee;
+
+* Group BK200 - Offer 3, APR 14.9, Fixed Rate, Zero Annual Fee;
+
+* Group BK250 = Offer 11, APR 19.8, Fixed Rate, Zero Annual Fee. 
+
 
 ```{r}
 exhibit2 <- exhibit2 %>%
@@ -473,25 +533,10 @@ exhibit2 <- exhibit2 %>%
          profit_ensem_200 = ensemble_200 * ltv200,
          profit_ensem_250 = ensemble_250 * ltv250)
 
-```
-
-
-
-```{r}
-exhibit2[which.max(exhibit2$profit_ensem_150),]
-exhibit2[which.max(exhibit2$profit_ensem_200),]
-exhibit2[which.max(exhibit2$profit_ensem_250),]
+exhibit2[which.max(exhibit2$profit_ensem_150),c('offer','apr','fixed_var', 'annual_fee', 'ensemble_150')]
+exhibit2[which.max(exhibit2$profit_ensem_200),c('offer','apr','fixed_var', 'annual_fee', 'ensemble_200')]
+exhibit2[which.max(exhibit2$profit_ensem_250),c('offer','apr','fixed_var', 'annual_fee', 'ensemble_250')]
 
 ```
-
-
-
-
-
-
-
-
-
-
 
 
