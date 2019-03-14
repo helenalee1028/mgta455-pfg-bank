@@ -55,3 +55,63 @@ exhibit2 <- readxl::read_excel(file.path(fp, "MGTA455-2019/data/exhibits.xlsx"),
 ```
 
 ## Question answers
+
+### Question 1
+
+```{r include = FALSE}
+library(dplyr)
+library(tidyverse)
+library(radiant)
+library(ggplot2)
+library(data.table)
+library(stringr)
+```
+
+As we can see in exhibit2, the expected LTVs vary with BK score groups. The higher the BK score, the lower the lifetime customer value. It makes sense as the probability of defaulting rises with bankcruptcy score and we adjust downwards our expected repayments.
+
+```{r}
+exhibit2 %>% 
+  select(ltv150, ltv200, ltv250) %>%
+  colMeans()
+
+```
+
+In addition, within each BK group, we can see LTV varies with product features. 
+
+1. LTV increases with APR. With higher interest rate charges, PFG has higher expected revenues, hence higher projected LTV;
+
+```{r}
+# ARP
+
+exhibit2 %>% 
+  group_by(apr) %>% 
+  summarise(avg_bk150 = mean(ltv150),
+            avg_bk200 = mean(ltv200),
+            avg_bk250 = mean(ltv250))
+```
+
+2. LTV will also rise if banks issue variable rate credit cars, because banks have the channels to pass along rising borrowing costs to customers, hence protecting their margins. 
+
+```{r}
+# Fixed vs Var
+
+exhibit2 %>% 
+  group_by(fixed_var) %>% 
+  summarise(avg_bk150 = mean(ltv150),
+            avg_bk200 = mean(ltv200),
+            avg_bk250 = mean(ltv250))
+```
+
+3. Higher annual fee also means higher projected LTV, as the fixed annual fee of $20 is guranteed revenues for banks.
+
+
+```{r}
+# Annual Fee
+
+exhibit2 %>% 
+  group_by(annual_fee) %>% 
+  summarise(avg_bk150 = mean(ltv150),
+            avg_bk200 = mean(ltv200),
+            avg_bk250 = mean(ltv250))
+```
+

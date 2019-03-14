@@ -1,0 +1,323 @@
+---
+title: "PFG-bank: Data Driven Credit Card Design"
+output: html_document
+---
+
+* Team-lead gitlab id:
+* Group number:
+* Group name:
+* Team member names:
+
+```{r r_setup, include = FALSE}
+## initial settings
+knitr::opts_chunk$set(
+  comment = NA,
+  echo = TRUE,
+  error = TRUE,
+  cache = FALSE,
+  message = FALSE,
+  dpi = 96,
+  warning = FALSE
+)
+
+## width to use when printing tables etc.
+options(
+  width = 250,
+  scipen = 100,
+  max.print = 5000,
+  stringsAsFactors = FALSE
+)
+```
+
+<style>
+.table {
+  width: auto;
+}
+ul, ol {
+  padding-left: 18px;
+}
+pre, code, pre code {
+  overflow: auto;
+  white-space: pre;
+  word-wrap: normal;
+  background-color: #ffffff;
+}
+</style>
+
+## Setup
+
+Please complete this R-markdown document by answering the questions in `pfg-bank.pdf` on Dropbox (week10/readings/). The code block below will load the historical data from exhibits 1 and 2. Please DO NOT change the code used to load the data. Create an HTML (Notebook) file with all your results and comments and push both the Rmarkdown and HTML file to GitLab when you are done. All analysis results MUST be reproducible (i.e., the TA and I must be able to recreate the HTML from the R-markdown file without changes or errors).
+
+```{r}
+fp <- radiant.data::find_dropbox()
+exhibit1 <- readxl::read_excel(file.path(fp, "MGTA455-2019/data/exhibits.xlsx"), sheet = "exhibit1")
+exhibit2 <- readxl::read_excel(file.path(fp, "MGTA455-2019/data/exhibits.xlsx"), sheet = "exhibit2")
+```
+
+## Question answers
+
+### Question 1
+
+```{r include = FALSE}
+library(dplyr)
+library(tidyverse)
+library(radiant)
+library(ggplot2)
+library(data.table)
+library(stringr)
+```
+
+As we can see in exhibit2, the expected LTVs vary with BK score groups. The higher the BK score, the lower the lifetime customer value. It makes sense as the probability of defaulting rises with bankcruptcy score and we adjust downwards our expected repayments.
+
+```{r}
+exhibit2 %>% 
+  select(ltv150, ltv200, ltv250) %>%
+  colMeans()
+
+```
+
+In addition, within each BK group, we can see LTV varies with product features. 
+
+1. LTV increases with APR. With higher interest rate charges, PFG has higher expected revenues, hence higher projected LTV;
+
+```{r}
+# ARP
+
+exhibit2 %>% 
+  group_by(apr) %>% 
+  summarise(avg_bk150 = mean(ltv150),
+            avg_bk200 = mean(ltv200),
+            avg_bk250 = mean(ltv250))
+```
+
+2. LTV will also rise if banks issue variable rate credit cars, because banks have the channels to pass along rising borrowing costs to customers, hence protecting their margins. 
+
+```{r}
+# Fixed vs Var
+
+exhibit2 %>% 
+  group_by(fixed_var) %>% 
+  summarise(avg_bk150 = mean(ltv150),
+            avg_bk200 = mean(ltv200),
+            avg_bk250 = mean(ltv250))
+```
+
+3. Higher annual fee also means higher projected LTV, as the fixed annual fee of $20 is guranteed revenues for banks.
+
+
+```{r}
+# Annual Fee
+
+exhibit2 %>% 
+  group_by(annual_fee) %>% 
+  summarise(avg_bk150 = mean(ltv150),
+            avg_bk200 = mean(ltv200),
+            avg_bk250 = mean(ltv250))
+```
+
+### Question 3
+
+```{r}
+# expand data frame
+
+exhibit1_150 <- exhibit1 %>%
+  filter(bk_score == 150) %>% 
+  select(apr, fixed_var, annual_fee, non_resp, resp) %>% 
+  gather(key = 'result', value = 'count', -c(apr, fixed_var, annual_fee)) %>% 
+  slice(rep(1:n(), count)) %>% 
+  select(-count)
+
+
+exhibit1_200 <- exhibit1 %>%
+  filter(bk_score == 200) %>% 
+  select(apr, fixed_var, annual_fee, non_resp, resp) %>% 
+  gather(key = 'result', value = 'count', -c(apr, fixed_var, annual_fee)) %>% 
+  slice(rep(1:n(), count)) %>% 
+  select(-count)
+
+exhibit1_250 <- exhibit1 %>%
+  filter(bk_score == 250) %>% 
+  select(apr, fixed_var, annual_fee, non_resp, resp) %>% 
+  gather(key = 'result', value = 'count', -c(apr, fixed_var, annual_fee)) %>% 
+  slice(rep(1:n(), count)) %>% 
+  select(-count)
+
+
+exhibit1_150 <- exhibit1_150 %>% mutate_all(as.factor)
+exhibit1_200 <- exhibit1_200 %>% mutate_all(as.factor)
+exhibit1_250 <- exhibit1_250 %>% mutate_all(as.factor)
+
+#saveRDS(exhibit1_150, 'exhibit1_150.rds')
+#saveRDS(exhibit1_200, 'exhibit1_200.rds')
+#saveRDS(exhibit1_250, 'exhibit1_250.rds')
+
+```
+
+
+```{r}
+test <-  exhibit1_250[sample(nrow(exhibit1_250), 20000), ]
+
+
+mean(exhibit1_250$result == "resp")
+mean(test$result == "resp")
+
+test250 <- logistic(
+  test, 
+  rvar = "result", 
+  evar = c("apr", "fixed_var", "annual_fee"), 
+  lev = "resp"
+)
+summary(test250)
+
+```
+
+
+
+```{r fig.width = 7, fig.height = 4.31, dpi = 144}
+result250 <- logistic(
+  exhibit1_250, 
+  rvar = "result", 
+  evar = c("apr", "fixed_var", "annual_fee"), 
+  lev = "resp"
+)
+summary(result250)
+plot(result250, plots = "coef", custom = FALSE)
+```
+
+
+```{r fig.width = 7, fig.height = 3.88, dpi = 144}
+result200 <- logistic(
+  exhibit1_200, 
+  rvar = "result", 
+  evar = c("apr", "annual_fee"), 
+  lev = "resp"
+)
+summary(result200)
+plot(result200, plots = "coef", custom = FALSE)
+```
+
+
+```{r fig.width = 7, fig.height = 4.09, dpi = 144}
+result150 <- logistic(
+  exhibit1_150, 
+  rvar = "result", 
+  evar = c("apr", "fixed_var", "annual_fee"), 
+  lev = "resp"
+)
+summary(result150)
+plot(result150, plots = "coef", custom = FALSE)
+```
+
+
+```{r}
+# compare product feature effect across different BK groups
+
+coeffs <- c("apr|16.8", "apr|19.8", "fixed_var|Variable", "annual_fee|20")
+
+# 250, 200, 150
+apr_168 <- c(result250[["coeff"]][["OR"]][2], 0, result150[["coeff"]][["OR"]][2])
+apr_198 <- c(result250[["coeff"]][["OR"]][3], result200[["coeff"]][["OR"]][2],0)
+var_to_fixed <- c(result250[["coeff"]][["OR"]][4], 0, result150[["coeff"]][["OR"]][3])
+annual_fee <- c(result250[["coeff"]][["OR"]][5], result200[["coeff"]][["OR"]][3], result150[["coeff"]][["OR"]][4])
+
+or_df <- data.frame(bkgroup = c("BK250", "BK200", "BK150"),
+                    apr_168 = apr_168,
+                    apr_198 = apr_198,
+                    var_to_fixed = var_to_fixed,
+                    annual_fee = annual_fee)
+
+or_df %>% 
+  gather(key = 'feature', value = 'odds_ratio', -bkgroup) %>% 
+  ggplot(aes(x = factor(bkgroup), y=odds_ratio)) +
+  geom_bar(stat = 'identity', position = "dodge", aes(fill = feature)) +
+  scale_fill_brewer(palette = "Dark2") + 
+  labs(main = "Product Feature Effects on Response Odds Ratio", 
+       x = 'BK Group')
+
+```
+
+
+### Precit Response Probability
+
+```{r}
+apr <- c("14.9", "16.8", "19.8")
+fixed_var <- c("Fixed", "Variable")
+annual_fee <- c("20", "0")
+
+factorial <- expand.grid(apr = apr, 
+                         fixed_var = fixed_var, 
+                         annual_fee = annual_fee)
+
+pred <- predict(result250, pred_data = factorial)
+print(pred)
+
+
+```
+
+```{r}
+
+# gather exhibit2 and join it with exhibit1
+exhibit2_gathered <- exhibit2 %>% 
+  gather(key = bk_score, value = 'LTV', -c(offer, apr, fixed_var, annual_fee)) %>% 
+  mutate(bk_score = str_sub(bk_score, -3,-1)) %>% 
+  mutate(bk_score = as.numeric(bk_score))
+
+# change product type for left-join
+pred <- data.frame(pred) %>% 
+  mutate(apr = as.character(apr),
+         annual_fee = as.character(annual_fee)) %>% 
+  mutate_if(is.character, as.numeric) %>% 
+  mutate(fixed_var = as.character(fixed_var))
+
+pred %>% 
+  left_join(subset(exhibit2_gathered, exhibit2_gathered$bk_score == 250), 
+            by =  c('apr'='apr',
+                    'fixed_var'='fixed_var',
+                    'annual_fee' = 'annual_fee')) %>% 
+  mutate(exp_ltv = Prediction * LTV) %>% 
+  arrange(desc(exp_ltv))
+
+
+```
+
+
+
+
+
+
+
+```{r}
+# gather exhibit2 and join it with exhibit1
+exhibit2_gathered <- exhibit2 %>% 
+  gather(key = bk_score, value = 'LTV', -c(offer, apr, fixed_var, annual_fee)) %>% 
+  mutate(bk_score = str_sub(bk_score, -3,-1)) %>% 
+  mutate(bk_score = as.numeric(bk_score))
+
+
+merged_df <- exhibit1 %>% 
+  left_join(exhibit2_gathered, by = c('apr'='apr',
+                                      'fixed_var'='fixed_var',
+                                      'annual_fee' = 'annual_fee',
+                                      'bk_score' = 'bk_score')) %>% 
+  select(-offer)
+
+
+merged_150 <- merged_df %>%
+  filter(bk_score == 150) %>% 
+  select(apr, fixed_var, annual_fee, non_resp, resp) %>% 
+  gather(key = 'result', value = 'count', -c(apr, fixed_var, annual_fee)) %>% 
+  slice(rep(1:n(), count)) %>% 
+  select(-count)
+
+```
+
+```{r}
+avg_resp <- exhibit1 %>% 
+  mutate(combo = paste(apr, fixed_var, annual_fee)) %>% 
+  group_by(combo) %>% 
+  summarise(mailed = sum(nr_mailed), resp = sum(resp), perc = resp/mailed) %>% 
+  arrange(desc(perc))
+
+avg_resp
+```
+
