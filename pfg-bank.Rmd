@@ -231,3 +231,267 @@ or_df %>%
        x = 'BK Group')
 
 ```
+
+### Question 3
+
+In our predictions after round 1, it looks that all customers would prefer 
+
+```{r message = FALSE}
+# import round 1 test results
+
+pfg_150 <- read_csv("pfg_150.csv")
+pfg_200 <- read_csv("pfg_200.csv")
+pfg_250 <- read_csv("pfg_250.csv")
+
+# change type product and expand for logistic regression
+
+pfg_150 <- mutate(pfg_150, no_resp = Sent - Responses)
+pfg_200 <- mutate(pfg_200, no_resp = Sent - Responses)
+pfg_250 <- mutate(pfg_250, no_resp = Sent - Responses)
+
+
+pfg_150 <- gather(pfg_150, responce, freq, Responses, no_resp, factor_key = TRUE)
+pfg_200 <- gather(pfg_200, responce, freq, Responses, no_resp, factor_key = TRUE)
+pfg_250 <- gather(pfg_250, responce, freq, Responses, no_resp, factor_key = TRUE)
+
+pfg_150 <- mutate_at(pfg_150, .vars = vars(apr, annual_fee), .funs = as_factor)
+pfg_200 <- mutate_at(pfg_200, .vars = vars(apr, annual_fee), .funs = as_factor)
+pfg_250 <- mutate_at(pfg_250, .vars = vars(apr, annual_fee), .funs = as_factor)
+
+# input for response rate prediction
+
+exhibit2 <- mutate_at(exhibit2, .vars = vars(apr, annual_fee), .funs = as_factor)
+
+```
+
+
+**Logistic Regression of BK150 after Round1**
+
+```{r}
+result <- logistic(
+  pfg_150, 
+  rvar = "responce", 
+  evar = c("apr", "fixed_var", "annual_fee"), 
+  lev = "Responses", 
+  wts = "freq"
+)
+summary(result)
+
+
+pred <- predict(result, pred_data = exhibit2)
+print(pred)
+exhibit2 <- store(exhibit2, pred, name = "pred_150")
+exhibit2$pred_150_lower <- pred$`2.5%`
+exhibit2$pred_150_higher <- pred$`97.5%`
+```
+
+
+**Logistic Regression of BK200 after Round1**
+
+```{r}
+
+result <- logistic(
+  pfg_200, 
+  rvar = "responce", 
+  evar = c("apr", "fixed_var", "annual_fee"), 
+  lev = "Responses", 
+  wts = "freq"
+)
+summary(result)
+
+pred <- predict(result, pred_data = exhibit2)
+print(pred)
+exhibit2 <- store(exhibit2, pred, name = "pred_200")
+exhibit2$pred_200_lower <- pred$`2.5%`
+exhibit2$pred_200_higher <- pred$`97.5%`
+```
+
+**Logistic Regression of BK250 after Round1**
+
+
+```{r}
+
+result <- logistic(
+  pfg_250, 
+  rvar = "responce", 
+  evar = c("apr", "fixed_var", "annual_fee"), 
+  lev = "Responses", 
+  wts = "freq"
+)
+summary(result)
+
+pred <- predict(result, pred_data = exhibit2)
+print(pred, n = 10)
+exhibit2 <- store(exhibit2, pred, name = "pred_250")
+exhibit2$pred_250_lower <- pred$`2.5%`
+exhibit2$pred_250_higher <- pred$`97.5%`
+```
+
+For each group of customers, we extracted the offer with highest predicted response rate. It turns out that all 3 groups prefer 14.9 ARP rate, fixed-rate APR and zero annual fees. It makes sense as customers want the products that are the most cost-effective. 
+
+```{r}
+exhibit2[which.max(exhibit2$pred_150),]
+exhibit2[which.max(exhibit2$pred_200),]
+exhibit2[which.max(exhibit2$pred_250),]
+
+
+```
+
+### Question 4
+
+In our final rolling out, we chose our offer that has the highest expected CLV, which is the corresponding CLV multiplied by predicted profits. 
+
+```{r}
+# calculated expected CLV for each group 
+exhibit2 <- exhibit2 %>%
+  mutate(profit_150 = ltv150*pred_150,
+         profit_200 = ltv200*pred_200,
+         profit_250 = ltv250*pred_250)
+
+# take a second look at upper and lower bound of expected CLV
+exhibit2 <- exhibit2 %>%
+  mutate(profit_150_lower = ltv150*pred_150_lower,
+         profit_150_higher = ltv150*pred_150_higher,
+         profit_200_lower = ltv200*pred_200_lower,
+         profit_200_higher = ltv200*pred_200_higher,
+         profit_250_lower = ltv250*pred_250_lower,
+         profit_250_higher = ltv250*pred_250_higher)
+
+# get offers that have the highest expected CLV
+send_150 <- exhibit2 %>%
+  arrange(desc(profit_150) )%>%
+            slice(1) %>% 
+  select(apr, fixed_var, annual_fee, pred_150)
+send_150 
+
+send_200 <- exhibit2 %>%
+  arrange(desc(profit_200) )%>%
+            slice(1) %>% 
+  select(apr, fixed_var, annual_fee, pred_200)
+send_200
+
+
+
+send_250 <- exhibit2 %>%
+  arrange(desc(profit_250) )%>%
+            slice(1) %>% 
+  select(apr, fixed_var, annual_fee, pred_250)
+
+send_250
+
+
+```
+
+### Neural Network - Second Support
+
+We also ran neural network to capture any remaining interaction effects we missed in logistic regression, if any. 
+
+```{r}
+result <- nn(
+  pfg_150, 
+  rvar = "responce", 
+  evar = c("apr", "fixed_var", "annual_fee"), 
+  lev = "Responses", 
+  wts = "freq", 
+  seed = 1234
+)
+summary(result, prn = TRUE)
+pred <- predict(result, pred_data = exhibit2)
+print(pred, n = 10)
+exhibit2 <- store(exhibit2, pred, name = "pred_nn_150")
+```
+
+
+
+```{r}
+result <- nn(
+  pfg_200, 
+  rvar = "responce", 
+  evar = c("apr", "fixed_var", "annual_fee"), 
+  lev = "Responses", 
+  wts = "freq", 
+  seed = 1234
+)
+summary(result, prn = TRUE)
+pred <- predict(result, pred_data = exhibit2)
+print(pred, n = 10)
+exhibit2 <- store(exhibit2, pred, name = "pred_nn_200")
+```
+
+
+
+
+
+```{r}
+result <- nn(
+  pfg_250, 
+  rvar = "responce", 
+  evar = c("apr", "fixed_var", "annual_fee"), 
+  lev = "Responses", 
+  wts = "freq", 
+  seed = 1234
+)
+summary(result, prn = TRUE)
+pred <- predict(result, pred_data = exhibit2)
+print(pred, n = 10)
+exhibit2 <- store(exhibit2, pred, name = "pred_nn_250")
+```
+
+
+```{r}
+exhibit2 <- exhibit2 %>%
+  mutate(profit_nn_150 = ltv150*pred_nn_150,
+         profit_nn_200 = ltv200*pred_nn_200,
+         profit_nn_250 = ltv250*pred_nn_250)
+
+```
+
+
+```{r}
+exhibit2[which.max(exhibit2$profit_nn_150),]
+exhibit2[which.max(exhibit2$profit_nn_200),]
+exhibit2[which.max(exhibit2$profit_nn_250),]
+
+```
+
+
+
+```{r}
+exhibit2[which.max(exhibit2$pred_nn_150),]
+exhibit2[which.max(exhibit2$pred_nn_200),]
+exhibit2[which.max(exhibit2$pred_nn_250),]
+
+```
+Ensemble
+
+```{r}
+exhibit2 <- exhibit2 %>%
+  mutate(ensemble_150  = (pred_150 +pred_nn_150) / 2,
+         ensemble_200  = (pred_200 +pred_nn_200) / 2,
+         ensemble_250  = (pred_250 +pred_nn_250) / 2,
+         profit_ensem_150 = ensemble_150 * ltv150,
+         profit_ensem_200 = ensemble_200 * ltv200,
+         profit_ensem_250 = ensemble_250 * ltv250)
+
+```
+
+
+
+```{r}
+exhibit2[which.max(exhibit2$profit_ensem_150),]
+exhibit2[which.max(exhibit2$profit_ensem_200),]
+exhibit2[which.max(exhibit2$profit_ensem_250),]
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
