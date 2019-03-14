@@ -82,7 +82,6 @@ In addition, within each BK group, we can see LTV varies with product features.
 
 ```{r}
 # ARP
-
 exhibit2 %>% 
   group_by(apr) %>% 
   summarise(avg_bk150 = mean(ltv150),
@@ -115,3 +114,120 @@ exhibit2 %>%
             avg_bk250 = mean(ltv250))
 ```
 
+
+### Question 2
+
+In this question, we separated exhibit1 dataset by three banktcruptcy score groups and expanded datasets to the length of mailing counts. Then we ran logistic regressions using actual response as predicted variable, and APR rate, fixed/variable rate and annual fee. Below are the predictive results. 
+
+```{r}
+# expand data frame
+
+exhibit1_150 <- exhibit1 %>%
+  filter(bk_score == 150) %>% 
+  select(apr, fixed_var, annual_fee, non_resp, resp) %>% 
+  gather(key = 'result', value = 'count', -c(apr, fixed_var, annual_fee)) %>% 
+  slice(rep(1:n(), count)) %>% 
+  select(-count)
+
+
+exhibit1_200 <- exhibit1 %>%
+  filter(bk_score == 200) %>% 
+  select(apr, fixed_var, annual_fee, non_resp, resp) %>% 
+  gather(key = 'result', value = 'count', -c(apr, fixed_var, annual_fee)) %>% 
+  slice(rep(1:n(), count)) %>% 
+  select(-count)
+
+exhibit1_250 <- exhibit1 %>%
+  filter(bk_score == 250) %>% 
+  select(apr, fixed_var, annual_fee, non_resp, resp) %>% 
+  gather(key = 'result', value = 'count', -c(apr, fixed_var, annual_fee)) %>% 
+  slice(rep(1:n(), count)) %>% 
+  select(-count)
+
+
+exhibit1_150 <- exhibit1_150 %>% mutate_all(as.factor)
+exhibit1_200 <- exhibit1_200 %>% mutate_all(as.factor)
+exhibit1_250 <- exhibit1_250 %>% mutate_all(as.factor)
+
+```
+
+
+**BK150 Group**
+
+```{r fig.width = 7, fig.height = 4.09, dpi = 144}
+result150 <- logistic(
+  exhibit1_150, 
+  rvar = "result", 
+  evar = c("apr", "fixed_var", "annual_fee"), 
+  lev = "resp"
+)
+summary(result150)
+plot(result150, plots = "coef", custom = FALSE)
+```
+
+**BK200 Group**
+
+```{r fig.width = 7, fig.height = 3.88, dpi = 144}
+result200 <- logistic(
+  exhibit1_200, 
+  rvar = "result", 
+  evar = c("apr", "annual_fee"), 
+  lev = "resp"
+)
+summary(result200)
+plot(result200, plots = "coef", custom = FALSE)
+```
+
+
+**BK250 Group**
+
+```{r fig.width = 7, fig.height = 4.31, dpi = 144}
+result250 <- logistic(
+  exhibit1_250, 
+  rvar = "result", 
+  evar = c("apr", "fixed_var", "annual_fee"), 
+  lev = "resp"
+)
+summary(result250)
+plot(result250, plots = "coef", custom = FALSE)
+```
+
+Generally, we don't find the predictive models useful in picking up product features' effects on response rate 
+
+across BK groups and here are the reasons. 
+
+* 1. The product feature combinations aren't comprehensive in BK150 and BK200, which makes it difficult to compare the effects of one feature while holding other features the same. To be specific, In group BK150, we don't have instance of APR 19.8; while in group BK200, we don't have APR 16.8 or fixed/variable rate.
+
+* 2. External factors have settled in since the launch of previous mailings, in terms of competitors' offers and prevailing borrowing costs. Both would affect how customers would react to PFG's product combinations. 
+
+However, the historical data did affirm our assumptions on how variations in these variables would affect customers' response rate. For example, in group BK250, the odds ratio of annual_fee|20 is 0.284, meaning that if PFG charges $20 for annual fee, the odds of a customer opening an account will decrease by 71.6%, holding all else constant. Also, given the only variables we have, we see that different BK groups react to the same product differently. 
+
+In our testing strategy, we used the average response rate of each product combinations, regardless of BK group, and check the ranking of average response rate. We used this relative ranking as reference in determining sample size. More details will be discussed in Question 4. 
+
+
+```{r}
+# compare product feature effect across different BK groups
+
+coeffs <- c("apr|16.8", "apr|19.8", "fixed_var|Variable", "annual_fee|20")
+
+# 250, 200, 150
+apr_168 <- c(result250[["coeff"]][["OR"]][2], 0, result150[["coeff"]][["OR"]][2])
+apr_198 <- c(result250[["coeff"]][["OR"]][3], result200[["coeff"]][["OR"]][2],0)
+var_to_fixed <- c(result250[["coeff"]][["OR"]][4], 0, result150[["coeff"]][["OR"]][3])
+annual_fee <- c(result250[["coeff"]][["OR"]][5], result200[["coeff"]][["OR"]][3], result150[["coeff"]][["OR"]][4])
+
+or_df <- data.frame(bkgroup = c("BK250", "BK200", "BK150"),
+                    apr_168 = apr_168,
+                    apr_198 = apr_198,
+                    var_to_fixed = var_to_fixed,
+                    annual_fee = annual_fee)
+
+or_df %>% 
+  gather(key = 'feature', value = 'odds_ratio', -bkgroup) %>% 
+  ggplot(aes(x = factor(bkgroup), y=odds_ratio)) +
+  geom_bar(stat = 'identity', position = "dodge", aes(fill = feature)) +
+  scale_fill_brewer(palette = "Set1") + 
+  labs(main = "Product Feature Effects on Response Odds Ratio", 
+       x = 'BK Group')
+
+```
