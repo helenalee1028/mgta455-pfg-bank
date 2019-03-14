@@ -453,7 +453,7 @@ fac_part
 
 After putting our decisions to test, we gathered the results and used logistic regression for our analysis. Model details are illustrated in Question3. 
 
-In our final rolling out, we chose our offer that has the highest expected CLV, which is the corresponding CLV multiplied by predicted profits. 
+In our final rolling out, we chose our offer that has the highest expected CLV, which is the corresponding CLV multiplied by predicted response rate. 
 
 * Group BK150 - Offer 4, Apr 14.9, Variable Rate, Zero Annual Fee;
 
