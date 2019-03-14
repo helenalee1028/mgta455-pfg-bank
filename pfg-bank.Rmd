@@ -652,7 +652,7 @@ auc(pfg_250_dat,c('pred_250','pred_nn_250','ensemble_250'))
 
 
 
-For most of the case, logistic regression, neural network and emsembl have equal predictive power in terms of auc. Logistic regression is slightly better. Therefore this is our final choice for each group of customers. 
+For most of the case, logistic regression, neural network and ensemble have equal predictive power in terms of auc. Logistic regression is slightly better. Therefore this is our final choice for each group of customers. 
 
 * Group BK150 - Offer 4, Apr 14.9, Variable Rate, Zero Annual Fee;
 
