@@ -96,49 +96,8 @@ summary(result)
 
 
 
-```{r}
-result <- doe(
-  factors = c(
-    "apr; 14.9; 16.8; 19.8", 
-    "annual_fee; 0; 20", 
-    "fixed_var; 'fixed'; 'var'", 
-    "bk; 150; 200; 250"
-  ), 
-  trials = 12, 
-  seed = 1234
-)
-summary(result, eff = TRUE, part = TRUE, full = TRUE)
-```
 
 
-
-```{r}
-
-a <- exhibit1%>%
-  group_by(type) %>%
-  summarize(what = sum(resp) / sum(nr_mailed)) %>%
-  filter(type %in% c('14.9_Variable_0','14.9_Fixed_20','16.8_Variable_0','16.8_Fixed_20','19.8_Fixed_0','19.8_Variable_20'))
-
-```
-
-
-
-```{r}
-
-b <- exhibit1 %>%
-  group_by(type) %>%
-  summarize(what = sum(resp) / sum(nr_mailed)) %>%
-  arrange(desc(what))
-
-```
-
-
-
-```{r}
-
-pfg_250_dat <- select(pfg_250, date, apr, fixed_var, annual_fee, visamc, nr_mailed, bk_score, average_bk, resp, freq) %>%
-  table2data("freq")
-```
 
 
 
@@ -190,6 +149,18 @@ pfg_200 <- mutate_at(pfg_200, .vars = vars(apr, annual_fee), .funs = as_factor)
 pfg_250 <- mutate_at(pfg_250, .vars = vars(apr, annual_fee), .funs = as_factor)
 ```
 
+
+```{r}
+pfg_150_dat <- select(pfg_150, profile, apr, fixed_var, annual_fee, Sent, responce, freq) %>%
+  table2data("freq")
+
+pfg_200_dat <- select(pfg_200, profile, apr, fixed_var, annual_fee, Sent, responce, freq) %>%
+  table2data("freq")
+
+pfg_250_dat <- select(pfg_250, profile, apr, fixed_var, annual_fee, Sent, responce, freq) %>%
+  table2data("freq")
+
+```
 pfg_150
 ```{r}
 result <- logistic(
@@ -203,10 +174,15 @@ summary(result)
 
 
 pred <- predict(result, pred_data = exhibit2)
-print(pred, n = 10)
+#print(pred, n = 10)
 exhibit2 <- store(exhibit2, pred, name = "pred_150")
 exhibit2$pred_150_lower <- pred$`2.5%`
 exhibit2$pred_150_higher <- pred$`97.5%`
+
+
+pred <- predict(result, pred_data = pfg_150_dat)
+pfg_150_dat <- store(pfg_150_dat, pred, name = "pred_150")
+
 ```
 
 
@@ -228,6 +204,11 @@ print(pred, n = 10)
 exhibit2 <- store(exhibit2, pred, name = "pred_200")
 exhibit2$pred_200_lower <- pred$`2.5%`
 exhibit2$pred_200_higher <- pred$`97.5%`
+
+
+
+pred <- predict(result, pred_data = pfg_200_dat)
+pfg_200_dat <- store(pfg_200_dat, pred, name = "pred_200")
 ```
 
 pfg_250
@@ -249,6 +230,11 @@ print(pred, n = 10)
 exhibit2 <- store(exhibit2, pred, name = "pred_250")
 exhibit2$pred_250_lower <- pred$`2.5%`
 exhibit2$pred_250_higher <- pred$`97.5%`
+
+
+
+pred <- predict(result, pred_data = pfg_250_dat)
+pfg_250_dat <- store(pfg_250_dat, pred, name = "pred_250")
 ```
 
 
@@ -335,6 +321,9 @@ summary(result, prn = TRUE)
 pred <- predict(result, pred_data = exhibit2)
 print(pred, n = 10)
 exhibit2 <- store(exhibit2, pred, name = "pred_nn_150")
+
+pred <- predict(result, pred_data = pfg_150_dat)
+pfg_150_dat <- store(pfg_150_dat, pred, name = "pred_nn_150")
 ```
 
 
@@ -352,6 +341,9 @@ summary(result, prn = TRUE)
 pred <- predict(result, pred_data = exhibit2)
 print(pred, n = 10)
 exhibit2 <- store(exhibit2, pred, name = "pred_nn_200")
+
+pred <- predict(result, pred_data = pfg_200_dat)
+pfg_200_dat <- store(pfg_200_dat, pred, name = "pred_nn_200")
 ```
 
 
@@ -371,6 +363,9 @@ summary(result, prn = TRUE)
 pred <- predict(result, pred_data = exhibit2)
 print(pred, n = 10)
 exhibit2 <- store(exhibit2, pred, name = "pred_nn_250")
+
+pred <- predict(result, pred_data = pfg_250_dat)
+pfg_250_dat <- store(pfg_250_dat, pred, name = "pred_nn_250")
 ```
 
 
@@ -461,8 +456,51 @@ In this case, through logistic regression on historical data, we found necessary
 
 
 
+```{r}
+# define evaluation function
+acc <- function(dat, vars){
+  
+  cm_df <- as.data.frame(matrix(NA, ncol = 2, nrow = length(vars)))
+  colnames(cm_df) <- c("var", "auc")
+  
+  for (i in 1:length(vars)){
+    
+    var <- vars[i]
+    probs <- pull(dat, !!var)
+    Resp <- pull(dat, "responce")
+    
+    #pred <- ifelse(pull(dat, !!var) > 0.5, "yes", "no")
+    
+    auc <- ModelMetrics::auc(ifelse(Resp=="Responses",1,0), probs)
 
+    cm_vec <- c(var, auc)
+    cm_df[i,] <- cm_vec
+    
+    cm_df[2] <- lapply(cm_df[2], as.numeric)
+  }
+  return(cm_df)
+}
 
+```
 
+```{r}
+pfg_150_dat <- pfg_150_dat %>%
+  mutate(ensemble_150 =(pred_150 + pred_nn_150)/2 )
 
+pfg_200_dat <- pfg_200_dat %>%
+  mutate(ensemble_200 =(pred_200 + pred_nn_200)/2 )
+
+pfg_250_dat <- pfg_250_dat %>%
+  mutate(ensemble_250 =(pred_250 + pred_nn_250)/2 )
+```
+```{r}
+acc(pfg_150_dat,c('pred_150','pred_nn_150','ensemble_150'))
+```
+```{r}
+acc(pfg_200_dat,c('pred_200','pred_nn_200','ensemble_200'))
+
+```
+```{r}
+acc(pfg_250_dat,c('pred_250','pred_nn_250','ensemble_250'))
+```
 
