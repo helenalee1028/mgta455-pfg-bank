@@ -252,11 +252,7 @@ exhibit2$pred_250_higher <- pred$`97.5%`
 ```
 
 
-```{r}
 
-
-
-```
 ```{r}
 exhibit2 <- exhibit2 %>%
   mutate(profit_150 = ltv150*pred_150,
@@ -276,6 +272,8 @@ exhibit2 <- exhibit2 %>%
 
 
 ```
+
+
 ```{r}
 send_150 <- exhibit2 %>%
   arrange(desc(profit_150) )%>%
@@ -398,5 +396,26 @@ exhibit2[which.max(exhibit2$profit_nn_250),]
 exhibit2[which.max(exhibit2$pred_nn_150),]
 exhibit2[which.max(exhibit2$pred_nn_200),]
 exhibit2[which.max(exhibit2$pred_nn_250),]
+
+```
+Ensemble
+
+```{r}
+exhibit2 <- exhibit2 %>%
+  mutate(ensemble_150  = (pred_150 +pred_nn_150) / 2,
+         ensemble_200  = (pred_200 +pred_nn_200) / 2,
+         ensemble_250  = (pred_250 +pred_nn_250) / 2,
+         profit_ensem_150 = ensemble_150 * ltv150,
+         profit_ensem_200 = ensemble_200 * ltv200,
+         profit_ensem_250 = ensemble_250 * ltv250)
+
+```
+
+
+
+```{r}
+exhibit2[which.max(exhibit2$profit_ensem_150),]
+exhibit2[which.max(exhibit2$profit_ensem_200),]
+exhibit2[which.max(exhibit2$profit_ensem_250),]
 
 ```
