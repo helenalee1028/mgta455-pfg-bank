@@ -372,12 +372,23 @@ $(document).ready(function () {
 
 </div>
 
+<div id="TOC">
+<ul>
+<li><a href="#setup">Setup</a></li>
+<li><a href="#question-answers">Question answers</a><ul>
+<li><a href="#question-1">Question 1</a></li>
+<li><a href="#question-2">Question 2</a></li>
+<li><a href="#question-3">Question 3</a></li>
+<li><a href="#question-4">Question 4</a></li>
+</ul></li>
+</ul>
+</div>
 
 <ul>
-<li>Team-lead gitlab id:</li>
-<li>Group number:</li>
-<li>Group name:</li>
-<li>Team member names:</li>
+<li>Team-lead gitlab id:2724742</li>
+<li>Group number:10</li>
+<li>Group name: Group_10</li>
+<li>Team member names: Menghui Zhang, Shumeng Shi, Wenrui Li</li>
 </ul>
 <style>
 .table {
@@ -587,7 +598,7 @@ Nr obs: 797,000 </code></pre>
 <li>External factors have settled in since the launch of previous mailings, in terms of competitors’ offers and prevailing borrowing costs. Both conditions affect how customers would react to PFG’s product combinations.</li>
 </ol></li>
 </ul>
-<p>However, the historical data did affirm our assumptions on how variations in these variables would affect customers’ response rate. For example, in group BK250, the odds ratio of annual_fee|20 is 0.284, meaning that if PFG charges $20 for the annual fee, the odds of a customer opening an account will decrease by 71.6%, holding all else constant. Also, given the current variables we have, we see that different BK groups react to the same product differently. Below is odds comparison among different BK groups.</p>
+<p>However, the historical data did affirm our assumptions on how variations in these variables would affect customers’ response rate. For example, in group BK250, the odds ratio of annual_fee|20 is 0.284, meaning that if PFG charges $20 for the annual fee, the odds of a customer opening an account will decrease by 71.6%, holding all else constant. Also, given the current variables we have, we see that different BK groups react to the same product differently. Below is odds ratio comparison among different BK groups.</p>
 <pre class="r"><code># compare product feature effect across different BK groups
 
 coeffs &lt;- c(&quot;apr|16.8&quot;, &quot;apr|19.8&quot;, &quot;fixed_var|Variable&quot;, &quot;annual_fee|20&quot;)
@@ -640,7 +651,18 @@ pfg_250 &lt;- mutate_at(pfg_250, .vars = vars(apr, annual_fee), .funs = as_facto
 
 # input for response rate prediction
 
-exhibit2 &lt;- mutate_at(exhibit2, .vars = vars(apr, annual_fee), .funs = as_factor)</code></pre>
+exhibit2 &lt;- mutate_at(exhibit2, .vars = vars(apr, annual_fee), .funs = as_factor)
+
+## expanded data
+
+pfg_150_dat &lt;- select(pfg_150, profile, apr, fixed_var, annual_fee, Sent, responce, freq) %&gt;%
+  table2data(&quot;freq&quot;)
+
+pfg_200_dat &lt;- select(pfg_200, profile, apr, fixed_var, annual_fee, Sent, responce, freq) %&gt;%
+  table2data(&quot;freq&quot;)
+
+pfg_250_dat &lt;- select(pfg_250, profile, apr, fixed_var, annual_fee, Sent, responce, freq) %&gt;%
+  table2data(&quot;freq&quot;)</code></pre>
 <p><strong>Logistic Regression of BK150 after Round1</strong></p>
 <pre class="r"><code>result &lt;- logistic(
   pfg_150, 
@@ -697,7 +719,10 @@ Rows shown           : 10 of 12
  19.8  Variable         20      0.004 0.002 0.007</code></pre>
 <pre class="r"><code>exhibit2 &lt;- store(exhibit2, pred, name = &quot;pred_150&quot;)
 exhibit2$pred_150_lower &lt;- pred$`2.5%`
-exhibit2$pred_150_higher &lt;- pred$`97.5%`</code></pre>
+exhibit2$pred_150_higher &lt;- pred$`97.5%`
+
+pred &lt;- predict(result, pred_data = pfg_150_dat)
+pfg_150_dat &lt;- store(pfg_150_dat, pred, name = &quot;pred_150&quot;)</code></pre>
 <p><strong>Logistic Regression of BK200 after Round1</strong></p>
 <pre class="r"><code>result &lt;- logistic(
   pfg_200, 
@@ -754,7 +779,11 @@ Rows shown           : 10 of 12
  19.8  Variable         20      0.003 0.002 0.006</code></pre>
 <pre class="r"><code>exhibit2 &lt;- store(exhibit2, pred, name = &quot;pred_200&quot;)
 exhibit2$pred_200_lower &lt;- pred$`2.5%`
-exhibit2$pred_200_higher &lt;- pred$`97.5%`</code></pre>
+exhibit2$pred_200_higher &lt;- pred$`97.5%`
+
+
+pred &lt;- predict(result, pred_data = pfg_200_dat)
+pfg_200_dat &lt;- store(pfg_200_dat, pred, name = &quot;pred_200&quot;)</code></pre>
 <p><strong>Logistic Regression of BK250 after Round1</strong></p>
 <pre class="r"><code>result &lt;- logistic(
   pfg_250, 
@@ -811,22 +840,25 @@ Rows shown           : 10 of 12
  19.8  Variable         20      0.003 0.002 0.006</code></pre>
 <pre class="r"><code>exhibit2 &lt;- store(exhibit2, pred, name = &quot;pred_250&quot;)
 exhibit2$pred_250_lower &lt;- pred$`2.5%`
-exhibit2$pred_250_higher &lt;- pred$`97.5%`</code></pre>
-<pre class="r"><code>exhibit2[which.max(exhibit2$pred_150),c(&quot;offer&quot;, &quot;apr&quot;, &quot;fixed_var&quot;, &quot;annual_fee&quot;, &quot;pred_150&quot;)]</code></pre>
-<pre><code># A tibble: 1 x 5
-  offer apr   fixed_var annual_fee pred_150
-  &lt;dbl&gt; &lt;fct&gt; &lt;chr&gt;     &lt;fct&gt;         &lt;dbl&gt;
-1     3 14.9  Fixed     0            0.0389</code></pre>
-<pre class="r"><code>exhibit2[which.max(exhibit2$pred_200),c(&quot;offer&quot;, &quot;apr&quot;, &quot;fixed_var&quot;, &quot;annual_fee&quot;, &quot;pred_200&quot;)]</code></pre>
-<pre><code># A tibble: 1 x 5
-  offer apr   fixed_var annual_fee pred_200
-  &lt;dbl&gt; &lt;fct&gt; &lt;chr&gt;     &lt;fct&gt;         &lt;dbl&gt;
-1     3 14.9  Fixed     0            0.0605</code></pre>
-<pre class="r"><code>exhibit2[which.max(exhibit2$pred_250),c(&quot;offer&quot;, &quot;apr&quot;, &quot;fixed_var&quot;, &quot;annual_fee&quot;, &quot;pred_250&quot;)]</code></pre>
-<pre><code># A tibble: 1 x 5
-  offer apr   fixed_var annual_fee pred_250
-  &lt;dbl&gt; &lt;fct&gt; &lt;chr&gt;     &lt;fct&gt;         &lt;dbl&gt;
-1     3 14.9  Fixed     0            0.0683</code></pre>
+exhibit2$pred_250_higher &lt;- pred$`97.5%`
+
+pred &lt;- predict(result, pred_data = pfg_250_dat)
+pfg_250_dat &lt;- store(pfg_250_dat, pred, name = &quot;pred_250&quot;)</code></pre>
+<pre class="r"><code>exhibit2[which.max(exhibit2$pred_150),]</code></pre>
+<pre><code># A tibble: 1 x 16
+  offer apr   fixed_var annual_fee ltv150 ltv200 ltv250 pred_150 pred_150_lower pred_150_higher pred_200 pred_200_lower pred_200_higher pred_250 pred_250_lower pred_250_higher
+  &lt;dbl&gt; &lt;fct&gt; &lt;chr&gt;     &lt;fct&gt;       &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;
+1     3 14.9  Fixed     0              52     32      2   0.0389         0.0265          0.0568   0.0605         0.0414          0.0876   0.0683         0.0463          0.0995</code></pre>
+<pre class="r"><code>exhibit2[which.max(exhibit2$pred_200),]</code></pre>
+<pre><code># A tibble: 1 x 16
+  offer apr   fixed_var annual_fee ltv150 ltv200 ltv250 pred_150 pred_150_lower pred_150_higher pred_200 pred_200_lower pred_200_higher pred_250 pred_250_lower pred_250_higher
+  &lt;dbl&gt; &lt;fct&gt; &lt;chr&gt;     &lt;fct&gt;       &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;
+1     3 14.9  Fixed     0              52     32      2   0.0389         0.0265          0.0568   0.0605         0.0414          0.0876   0.0683         0.0463          0.0995</code></pre>
+<pre class="r"><code>exhibit2[which.max(exhibit2$pred_250),]</code></pre>
+<pre><code># A tibble: 1 x 16
+  offer apr   fixed_var annual_fee ltv150 ltv200 ltv250 pred_150 pred_150_lower pred_150_higher pred_200 pred_200_lower pred_200_higher pred_250 pred_250_lower pred_250_higher
+  &lt;dbl&gt; &lt;fct&gt; &lt;chr&gt;     &lt;fct&gt;       &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;
+1     3 14.9  Fixed     0              52     32      2   0.0389         0.0265          0.0568   0.0605         0.0414          0.0876   0.0683         0.0463          0.0995</code></pre>
 </div>
 <div id="question-4" class="section level3">
 <h3>Question 4</h3>
@@ -952,12 +984,12 @@ fac_part</code></pre>
 <h4>After Round 1</h4>
 <div id="recommendation-for-each-group" class="section level5">
 <h5>Recommendation for Each Group</h5>
-<p>After putting our decisions to test, we gathered the results and used logistic regression for our analysis. Model details are illustrated in Question 3.</p>
+<p>After putting our decisions to test, we gathered the results and used logistic regression for our analysis. Model details are illustrated in Question3.</p>
 <p>In our final rolling out, we chose our offer that has the highest expected CLV, which is the corresponding CLV multiplied by predicted profits.</p>
 <ul>
 <li><p>Group BK150 - Offer 4, Apr 14.9, Variable Rate, Zero Annual Fee;</p></li>
 <li><p>Group BK200 - Offer 3, APR 14.9, Fixed Rate, Zero Annual Fee;</p></li>
-<li><p>Group BK250 = Offer 11, APR 19.8, Fixed Rate, Zero Annual Fee.</p></li>
+<li><p>Group BK250 - Offer 11, APR 19.8, Fixed Rate, Zero Annual Fee.</p></li>
 </ul>
 <pre class="r"><code># calculated expected CLV for each group 
 exhibit2 &lt;- exhibit2 %&gt;%
@@ -1038,7 +1070,10 @@ Rows shown           : 10 of 12
  16.8  Variable          0      0.013
  19.8     Fixed         20      0.005
  19.8  Variable         20      0.005</code></pre>
-<pre class="r"><code>exhibit2 &lt;- store(exhibit2, pred, name = &quot;pred_nn_150&quot;)</code></pre>
+<pre class="r"><code>exhibit2 &lt;- store(exhibit2, pred, name = &quot;pred_nn_150&quot;)
+
+pred &lt;- predict(result, pred_data = pfg_150_dat)
+pfg_150_dat &lt;- store(pfg_150_dat, pred, name = &quot;pred_nn_150&quot;)</code></pre>
 <p><strong>Neural Network Model for BK200</strong></p>
 <pre class="r"><code>result &lt;- nn(
   pfg_200, 
@@ -1070,7 +1105,10 @@ Rows shown           : 10 of 12
  16.8  Variable          0      0.019
  19.8     Fixed         20      0.006
  19.8  Variable         20      0.005</code></pre>
-<pre class="r"><code>exhibit2 &lt;- store(exhibit2, pred, name = &quot;pred_nn_200&quot;)</code></pre>
+<pre class="r"><code>exhibit2 &lt;- store(exhibit2, pred, name = &quot;pred_nn_200&quot;)
+
+pred &lt;- predict(result, pred_data = pfg_200_dat)
+pfg_200_dat &lt;- store(pfg_200_dat, pred, name = &quot;pred_nn_200&quot;)</code></pre>
 <p><strong>Neural Network Model for BK250</strong></p>
 <pre class="r"><code>result &lt;- nn(
   pfg_250, 
@@ -1120,7 +1158,10 @@ Rows shown           : 10 of 12
  16.8  Variable          0      0.020
  19.8     Fixed         20      0.005
  19.8  Variable         20      0.005</code></pre>
-<pre class="r"><code>exhibit2 &lt;- store(exhibit2, pred, name = &quot;pred_nn_250&quot;)</code></pre>
+<pre class="r"><code>exhibit2 &lt;- store(exhibit2, pred, name = &quot;pred_nn_250&quot;)
+
+pred &lt;- predict(result, pred_data = pfg_250_dat)
+pfg_250_dat &lt;- store(pfg_250_dat, pred, name = &quot;pred_nn_250&quot;)</code></pre>
 <p>Next we checked the expected CLV ranking as well and below are the recommendations. The results are different from previous recommendations where variable rate plans are recommendated for BK200 and BK250.</p>
 <ul>
 <li><p>Group BK150 - Offer 4, Apr 14.9, Variable Rate, Zero Annual Fee;</p></li>
@@ -1151,12 +1192,7 @@ exhibit2[which.max(exhibit2$profit_nn_150),c('offer','apr','fixed_var', 'annual_
 </div>
 <div id="ensemble" class="section level5">
 <h5>Ensemble</h5>
-<p>We then ensembled the predictions and checked the expected clv. The results are the same with logistic regression. Therefore this is our final choice for each group of customers.</p>
-<ul>
-<li><p>Group BK150 - Offer 4, Apr 14.9, Variable Rate, Zero Annual Fee;</p></li>
-<li><p>Group BK200 - Offer 3, APR 14.9, Fixed Rate, Zero Annual Fee;</p></li>
-<li><p>Group BK250 = Offer 11, APR 19.8, Fixed Rate, Zero Annual Fee.</p></li>
-</ul>
+<p>We then ensembled the predictions and checked the expected clv. The results are the same with logistic regression.</p>
 <pre class="r"><code>exhibit2 &lt;- exhibit2 %&gt;%
   mutate(ensemble_150  = (pred_150 +pred_nn_150) / 2,
          ensemble_200  = (pred_200 +pred_nn_200) / 2,
@@ -1180,6 +1216,65 @@ exhibit2[which.max(exhibit2$profit_ensem_150),c('offer','apr','fixed_var', 'annu
   offer apr   fixed_var annual_fee ensemble_250
   &lt;dbl&gt; &lt;fct&gt; &lt;chr&gt;     &lt;fct&gt;             &lt;dbl&gt;
 1    11 19.8  Fixed     0                0.0139</code></pre>
+<pre class="r"><code>## ensemble predict on expanded train set
+pfg_150_dat &lt;- pfg_150_dat %&gt;%
+  mutate(ensemble_150 =(pred_150 + pred_nn_150)/2 )
+
+pfg_200_dat &lt;- pfg_200_dat %&gt;%
+  mutate(ensemble_200 =(pred_200 + pred_nn_200)/2 )
+
+pfg_250_dat &lt;- pfg_250_dat %&gt;%
+  mutate(ensemble_250 =(pred_250 + pred_nn_250)/2 )</code></pre>
+</div>
+<div id="compare-auc" class="section level5">
+<h5>Compare AUC</h5>
+<p>To validate our final choice, we calculate the model aucs on expanded train set. It turns out that logistic is slightly better than the other two.</p>
+<pre class="r"><code># define evaluation function
+auc &lt;- function(dat, vars){
+  
+  cm_df &lt;- as.data.frame(matrix(NA, ncol = 2, nrow = length(vars)))
+  colnames(cm_df) &lt;- c(&quot;var&quot;, &quot;auc&quot;)
+  
+  for (i in 1:length(vars)){
+    
+    var &lt;- vars[i]
+    probs &lt;- pull(dat, !!var)
+    Resp &lt;- pull(dat, &quot;responce&quot;)
+    
+    #pred &lt;- ifelse(pull(dat, !!var) &gt; 0.5, &quot;yes&quot;, &quot;no&quot;)
+    
+    auc &lt;- ModelMetrics::auc(ifelse(Resp==&quot;Responses&quot;,1,0), probs)
+
+    cm_vec &lt;- c(var, auc)
+    cm_df[i,] &lt;- cm_vec
+    
+    cm_df[2] &lt;- lapply(cm_df[2], as.numeric)
+  }
+  return(cm_df)
+}
+
+
+auc(pfg_150_dat,c('pred_150','pred_nn_150','ensemble_150'))</code></pre>
+<pre><code>           var       auc
+1     pred_150 0.7176004
+2  pred_nn_150 0.7152543
+3 ensemble_150 0.7152543</code></pre>
+<pre class="r"><code>auc(pfg_200_dat,c('pred_200','pred_nn_200','ensemble_200'))</code></pre>
+<pre><code>           var       auc
+1     pred_200 0.6892024
+2  pred_nn_200 0.6892024
+3 ensemble_200 0.6892024</code></pre>
+<pre class="r"><code>auc(pfg_250_dat,c('pred_250','pred_nn_250','ensemble_250'))</code></pre>
+<pre><code>           var       auc
+1     pred_250 0.7266846
+2  pred_nn_250 0.7266846
+3 ensemble_250 0.7266846</code></pre>
+<p>For most of the case, logistic regression, neural network and emsembl have equal predictive power in terms of auc. Logistic regression is slightly better. Therefore this is our final choice for each group of customers.</p>
+<ul>
+<li><p>Group BK150 - Offer 4, Apr 14.9, Variable Rate, Zero Annual Fee;</p></li>
+<li><p>Group BK200 - Offer 3, APR 14.9, Fixed Rate, Zero Annual Fee;</p></li>
+<li><p>Group BK250 - Offer 11, APR 19.8, Fixed Rate, Zero Annual Fee.</p></li>
+</ul>
 </div>
 </div>
 </div>
