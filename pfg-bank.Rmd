@@ -257,6 +257,18 @@ pfg_250 <- mutate_at(pfg_250, .vars = vars(apr, annual_fee), .funs = as_factor)
 
 exhibit2 <- mutate_at(exhibit2, .vars = vars(apr, annual_fee), .funs = as_factor)
 
+## expanded data
+
+pfg_150_dat <- select(pfg_150, profile, apr, fixed_var, annual_fee, Sent, responce, freq) %>%
+  table2data("freq")
+
+pfg_200_dat <- select(pfg_200, profile, apr, fixed_var, annual_fee, Sent, responce, freq) %>%
+  table2data("freq")
+
+pfg_250_dat <- select(pfg_250, profile, apr, fixed_var, annual_fee, Sent, responce, freq) %>%
+  table2data("freq")
+
+
 ```
 
 
@@ -278,6 +290,9 @@ print(pred)
 exhibit2 <- store(exhibit2, pred, name = "pred_150")
 exhibit2$pred_150_lower <- pred$`2.5%`
 exhibit2$pred_150_higher <- pred$`97.5%`
+
+pred <- predict(result, pred_data = pfg_150_dat)
+pfg_150_dat <- store(pfg_150_dat, pred, name = "pred_150")
 ```
 
 
@@ -299,6 +314,10 @@ print(pred)
 exhibit2 <- store(exhibit2, pred, name = "pred_200")
 exhibit2$pred_200_lower <- pred$`2.5%`
 exhibit2$pred_200_higher <- pred$`97.5%`
+
+
+pred <- predict(result, pred_data = pfg_200_dat)
+pfg_200_dat <- store(pfg_200_dat, pred, name = "pred_200")
 ```
 
 **Logistic Regression of BK250 after Round1**
@@ -320,6 +339,9 @@ print(pred, n = 10)
 exhibit2 <- store(exhibit2, pred, name = "pred_250")
 exhibit2$pred_250_lower <- pred$`2.5%`
 exhibit2$pred_250_higher <- pred$`97.5%`
+
+pred <- predict(result, pred_data = pfg_250_dat)
+pfg_250_dat <- store(pfg_250_dat, pred, name = "pred_250")
 ```
 
 
@@ -496,6 +518,9 @@ result <- nn(
 pred <- predict(result, pred_data = exhibit2)
 print(pred)
 exhibit2 <- store(exhibit2, pred, name = "pred_nn_150")
+
+pred <- predict(result, pred_data = pfg_150_dat)
+pfg_150_dat <- store(pfg_150_dat, pred, name = "pred_nn_150")
 ```
 
 **Neural Network Model for BK200**
@@ -512,6 +537,9 @@ result <- nn(
 pred <- predict(result, pred_data = exhibit2)
 print(pred)
 exhibit2 <- store(exhibit2, pred, name = "pred_nn_200")
+
+pred <- predict(result, pred_data = pfg_200_dat)
+pfg_200_dat <- store(pfg_200_dat, pred, name = "pred_nn_200")
 ```
 
 **Neural Network Model for BK250**
@@ -529,6 +557,9 @@ summary(result, prn = TRUE)
 pred <- predict(result, pred_data = exhibit2)
 print(pred)
 exhibit2 <- store(exhibit2, pred, name = "pred_nn_250")
+
+pred <- predict(result, pred_data = pfg_250_dat)
+pfg_250_dat <- store(pfg_250_dat, pred, name = "pred_nn_250")
 ```
 
 
@@ -554,13 +585,7 @@ exhibit2[which.max(exhibit2$profit_nn_250),c('offer','apr','fixed_var', 'annual_
 
 ##### Ensemble
 
-We then ensembled the predictions and checked the expected clv. The results are the same with logistic regression. Therefore this is our final choice for each group of customers. 
-
-* Group BK150 - Offer 4, Apr 14.9, Variable Rate, Zero Annual Fee;
-
-* Group BK200 - Offer 3, APR 14.9, Fixed Rate, Zero Annual Fee;
-
-* Group BK250 = Offer 11, APR 19.8, Fixed Rate, Zero Annual Fee. 
+We then ensembled the predictions and checked the expected clv. The results are the same with logistic regression. 
 
 
 ```{r}
@@ -576,6 +601,58 @@ exhibit2[which.max(exhibit2$profit_ensem_150),c('offer','apr','fixed_var', 'annu
 exhibit2[which.max(exhibit2$profit_ensem_200),c('offer','apr','fixed_var', 'annual_fee', 'ensemble_200')]
 exhibit2[which.max(exhibit2$profit_ensem_250),c('offer','apr','fixed_var', 'annual_fee', 'ensemble_250')]
 
+## ensemble predict on expanded train set
+pfg_150_dat <- pfg_150_dat %>%
+  mutate(ensemble_150 =(pred_150 + pred_nn_150)/2 )
+
+pfg_200_dat <- pfg_200_dat %>%
+  mutate(ensemble_200 =(pred_200 + pred_nn_200)/2 )
+
+pfg_250_dat <- pfg_250_dat %>%
+  mutate(ensemble_250 =(pred_250 + pred_nn_250)/2 )
+```
+
+##### Compare AUC
+
+To validate our final choice, we calculate the model aucs on expanded train set. It turns out that logistic is slightly better than the other two. 
+
+```{r}
+# define evaluation function
+auc <- function(dat, vars){
+  
+  cm_df <- as.data.frame(matrix(NA, ncol = 2, nrow = length(vars)))
+  colnames(cm_df) <- c("var", "auc")
+  
+  for (i in 1:length(vars)){
+    
+    var <- vars[i]
+    probs <- pull(dat, !!var)
+    Resp <- pull(dat, "responce")
+    
+    #pred <- ifelse(pull(dat, !!var) > 0.5, "yes", "no")
+    
+    auc <- ModelMetrics::auc(ifelse(Resp=="Responses",1,0), probs)
+
+    cm_vec <- c(var, auc)
+    cm_df[i,] <- cm_vec
+    
+    cm_df[2] <- lapply(cm_df[2], as.numeric)
+  }
+  return(cm_df)
+}
+
+
+auc(pfg_150_dat,c('pred_150','pred_nn_150','ensemble_150'))
+auc(pfg_200_dat,c('pred_200','pred_nn_200','ensemble_200'))
+auc(pfg_250_dat,c('pred_250','pred_nn_250','ensemble_250'))
 ```
 
 
+
+For most of the case, logistic regression, neural network and emsembl have equal predictive power in terms of auc. Logistic regression is slightly better. Therefore this is our final choice for each group of customers. 
+
+* Group BK150 - Offer 4, Apr 14.9, Variable Rate, Zero Annual Fee;
+
+* Group BK200 - Offer 3, APR 14.9, Fixed Rate, Zero Annual Fee;
+
+* Group BK250 = Offer 11, APR 19.8, Fixed Rate, Zero Annual Fee. 
