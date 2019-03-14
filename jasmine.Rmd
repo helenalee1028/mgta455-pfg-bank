@@ -419,3 +419,50 @@ exhibit2[which.max(exhibit2$profit_ensem_200),]
 exhibit2[which.max(exhibit2$profit_ensem_250),]
 
 ```
+
+
+
+## Question 4
+
+The decision of test setting consists of two step. The first is which combination to test, the second is test size for each cell.
+
+* Partial or full factorial design?
+
+In this case, we feel that full factorial testing will burn too many customers who could have been targeted by specific credit plans. We believe that after careful subset, we will be able to be exposed to necessary information about the most important features.
+
+* Test combination
+
+We use Radiant DOB function to help us decide on which combination to test. The design factors are apr, annual fee and fixed_var. The reason we did not include br_score is that, br_score is customer attributes rather than product attributes and we can not control. It is necessary that each customer type was exposed to same kinds of combinations, which will help pfg to gain a full picture in customer respond pattern. In DOB, design efficency has first exceeded 0.8 at the 6th trials and the set is balanced. Thus, we decide to test 6 combinations for each customer type.
+
+
+The 6 combinations we chose are as follows:
+
+```{r}
+result <- doe(
+  factors = c(
+    "apr; 14.9; 16.8; 19.8", 
+    "annual_fee; 0; 20", 
+    "fixed_var; 'fixed'; 'var'"
+  ), 
+  trials = 6, 
+  seed = 1234
+)
+summary(result, eff = FALSE, part = TRUE, full = FALSE)
+```
+
+With different random seeds, factorial designs are differiented mainly in terms of annual fee and fixed_var. Under each instance of apr, the test settings are either \$0_variable and \$20_fixed pr \$0_fixed and \$20_variable. Between those two we prefer \$0_variable and \$20_fixed. Conclusion is clear from historic data that the higher the annual fee, the lower responce rate is, and people have a more positive attitude towards fixed rate compared to variable rate. Thus the combination of $0 and variable has dirven customers' decisions into two opposite ways, towards which test will provide more unseen information of customer behaviors. 
+
+However, to avoid not being able to differentiate from annual_fee and fixed_var, we combine annual_fee = $0 and fixed rate under apr = 19.8. 
+
+* Sample size
+
+In this case, through logistic regression on historical data, we found necessary sample size would be around 18000 for each kind of cutomer to make all explanatory variables statistically significant. Instead of evenly allocating 18000 testers to 6 combinations, we decide to differenciate sample size according to uncertainty and ambiguity of test result. For example, for those combinations at the spectrum of all test settings, we may allocate smaller sample size as we are relatively sure their responce rate would be at top and bottom. For those combinations at middle, responding difference between each case is little, thus large sample size is needed to make the result statistically significant. Sample size we choose for 6 test combinations are 2000,3000,4000, 4000,3000,2000 respectively.
+
+
+
+
+
+
+
+
+
