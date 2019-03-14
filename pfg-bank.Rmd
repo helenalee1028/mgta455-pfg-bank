@@ -101,7 +101,7 @@ exhibit2 %>%
             avg_bk250 = mean(ltv250))
 ```
 
-* 3. Higher annual fee also means higher projected LTV, as the fixed annual fee of \$20 is guranteed revenues for banks. Translated to customer LTV, it's equivalent to \$21.
+* 3. Higher annual fee also means higher projected LTV, as the fixed annual fee of \$20 is guranteed revenues for banks. Translated to customer LTV, it's equivalent to \$31.
 
 
 ```{r}
@@ -324,9 +324,9 @@ exhibit2$pred_250_higher <- pred$`97.5%`
 
 
 ```{r}
-exhibit2[which.max(exhibit2$pred_150),]
-exhibit2[which.max(exhibit2$pred_200),]
-exhibit2[which.max(exhibit2$pred_250),]
+exhibit2[which.max(exhibit2$pred_150),c("offer", "apr", "fixed_var", "annual_fee", "pred_150")]
+exhibit2[which.max(exhibit2$pred_200),c("offer", "apr", "fixed_var", "annual_fee", "pred_200")]
+exhibit2[which.max(exhibit2$pred_250),c("offer", "apr", "fixed_var", "annual_fee", "pred_250")]
 
 ```
 

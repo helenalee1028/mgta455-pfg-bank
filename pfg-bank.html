@@ -447,7 +447,7 @@ exhibit2 %&gt;%
 2 Variable      100.       80.2      50.2</code></pre>
 <ul>
 <li><ol start="3" style="list-style-type: decimal">
-<li>Higher annual fee also means higher projected LTV, as the fixed annual fee of $20 is guranteed revenues for banks. Translated to customer LTV, it’s equivalent to $21.</li>
+<li>Higher annual fee also means higher projected LTV, as the fixed annual fee of $20 is guranteed revenues for banks. Translated to customer LTV, it’s equivalent to $31.</li>
 </ol></li>
 </ul>
 <pre class="r"><code># Annual Fee
@@ -812,21 +812,21 @@ Rows shown           : 10 of 12
 <pre class="r"><code>exhibit2 &lt;- store(exhibit2, pred, name = &quot;pred_250&quot;)
 exhibit2$pred_250_lower &lt;- pred$`2.5%`
 exhibit2$pred_250_higher &lt;- pred$`97.5%`</code></pre>
-<pre class="r"><code>exhibit2[which.max(exhibit2$pred_150),]</code></pre>
-<pre><code># A tibble: 1 x 16
-  offer apr   fixed_var annual_fee ltv150 ltv200 ltv250 pred_150 pred_150_lower pred_150_higher pred_200 pred_200_lower pred_200_higher pred_250 pred_250_lower pred_250_higher
-  &lt;dbl&gt; &lt;fct&gt; &lt;chr&gt;     &lt;fct&gt;       &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;
-1     3 14.9  Fixed     0              52     32      2   0.0389         0.0265          0.0568   0.0605         0.0414          0.0876   0.0683         0.0463          0.0995</code></pre>
-<pre class="r"><code>exhibit2[which.max(exhibit2$pred_200),]</code></pre>
-<pre><code># A tibble: 1 x 16
-  offer apr   fixed_var annual_fee ltv150 ltv200 ltv250 pred_150 pred_150_lower pred_150_higher pred_200 pred_200_lower pred_200_higher pred_250 pred_250_lower pred_250_higher
-  &lt;dbl&gt; &lt;fct&gt; &lt;chr&gt;     &lt;fct&gt;       &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;
-1     3 14.9  Fixed     0              52     32      2   0.0389         0.0265          0.0568   0.0605         0.0414          0.0876   0.0683         0.0463          0.0995</code></pre>
-<pre class="r"><code>exhibit2[which.max(exhibit2$pred_250),]</code></pre>
-<pre><code># A tibble: 1 x 16
-  offer apr   fixed_var annual_fee ltv150 ltv200 ltv250 pred_150 pred_150_lower pred_150_higher pred_200 pred_200_lower pred_200_higher pred_250 pred_250_lower pred_250_higher
-  &lt;dbl&gt; &lt;fct&gt; &lt;chr&gt;     &lt;fct&gt;       &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;    &lt;dbl&gt;          &lt;dbl&gt;           &lt;dbl&gt;
-1     3 14.9  Fixed     0              52     32      2   0.0389         0.0265          0.0568   0.0605         0.0414          0.0876   0.0683         0.0463          0.0995</code></pre>
+<pre class="r"><code>exhibit2[which.max(exhibit2$pred_150),c(&quot;offer&quot;, &quot;apr&quot;, &quot;fixed_var&quot;, &quot;annual_fee&quot;, &quot;pred_150&quot;)]</code></pre>
+<pre><code># A tibble: 1 x 5
+  offer apr   fixed_var annual_fee pred_150
+  &lt;dbl&gt; &lt;fct&gt; &lt;chr&gt;     &lt;fct&gt;         &lt;dbl&gt;
+1     3 14.9  Fixed     0            0.0389</code></pre>
+<pre class="r"><code>exhibit2[which.max(exhibit2$pred_200),c(&quot;offer&quot;, &quot;apr&quot;, &quot;fixed_var&quot;, &quot;annual_fee&quot;, &quot;pred_200&quot;)]</code></pre>
+<pre><code># A tibble: 1 x 5
+  offer apr   fixed_var annual_fee pred_200
+  &lt;dbl&gt; &lt;fct&gt; &lt;chr&gt;     &lt;fct&gt;         &lt;dbl&gt;
+1     3 14.9  Fixed     0            0.0605</code></pre>
+<pre class="r"><code>exhibit2[which.max(exhibit2$pred_250),c(&quot;offer&quot;, &quot;apr&quot;, &quot;fixed_var&quot;, &quot;annual_fee&quot;, &quot;pred_250&quot;)]</code></pre>
+<pre><code># A tibble: 1 x 5
+  offer apr   fixed_var annual_fee pred_250
+  &lt;dbl&gt; &lt;fct&gt; &lt;chr&gt;     &lt;fct&gt;         &lt;dbl&gt;
+1     3 14.9  Fixed     0            0.0683</code></pre>
 </div>
 <div id="question-4" class="section level3">
 <h3>Question 4</h3>
